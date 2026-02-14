@@ -1,4 +1,6 @@
 import { Module } from '@nestjs/common';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule } from './config/config.module';
 import { DatabaseModule } from './database/database.module';
 import { AuthModule } from './auth/auth.module';
@@ -13,6 +15,11 @@ import { AppController } from './app.controller';
   imports: [
     ConfigModule,
     DatabaseModule,
+    // Rate limiting: máximo 10 requests por minuto por IP
+    ThrottlerModule.forRoot([{
+      ttl: 60000, // 60 segundos
+      limit: 100, // 100 requests
+    }]),
     AuthModule,
     UsersModule,
     ProductsModule,
@@ -20,5 +27,13 @@ import { AppController } from './app.controller';
     MailModule,
   ],
   controllers: [AppController],
+  providers: [
+    // Aplicar rate limiting globalmente
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
+  ],
 })
 export class AppModule {}
+

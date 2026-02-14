@@ -1,5 +1,5 @@
 import { plainToInstance } from 'class-transformer';
-import { validateSync, IsInt, IsString, Min } from 'class-validator';
+import { validateSync, IsInt, IsString, Min, IsOptional } from 'class-validator';
 
 class EnvVars {
   @IsInt()
@@ -11,6 +11,13 @@ class EnvVars {
 
   @IsString()
   MONGO_URI: string;
+
+  @IsString()
+  JWT_EXPIRATION: string;
+
+  @IsOptional()
+  @IsString()
+  ADMIN_SECRET_CODE?: string;
 }
 
 export function validate(config: Record<string, unknown>) {
@@ -18,6 +25,8 @@ export function validate(config: Record<string, unknown>) {
     PORT: Number(config.PORT),
     JWT_SECRET: config.JWT_SECRET,
     MONGO_URI: config.MONGO_URI,
+    JWT_EXPIRATION: config.JWT_EXPIRATION || '7d',
+    ADMIN_SECRET_CODE: config.ADMIN_SECRET_CODE,
   });
 
   const errors = validateSync(validated, {

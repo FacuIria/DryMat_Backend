@@ -1,22 +1,19 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
+import * as bcrypt from 'bcrypt';
 import { CreateUserDto, UpdateUserDto } from './dto/user.dto';
 import { User, UserDocument, UserRole } from './schema/user.schema';
 
-
-
-function fakeHash(p: string) {
-  return `DEV_HASH__${p}`;
-}
-
 @Injectable()
 export class UsersService {
-  constructor(@InjectModel(User.name) private readonly userModel: Model<UserDocument>) {}
+  constructor(@InjectModel(User.name) public readonly userModel: Model<UserDocument>) {}
 
   async create(dto: CreateUserDto) {
     const exists = await this.userModel.exists({ email: dto.email.toLowerCase().trim() });
     if (exists) throw new BadRequestException('Email ya registrado');
+
+    const passwordHash = await bcrypt.hash(dto.password, 10);
 
     const doc = await this.userModel.create({
       nombre: dto.nombre,
@@ -25,7 +22,7 @@ export class UsersService {
       email: dto.email,
       genero: dto.genero,
       role: dto.role ?? UserRole.USER,
-      passwordHash: fakeHash(dto.password), // <- en Auth lo reemplazamos
+      passwordHash,
     });
 
     return doc.toJSON();
@@ -53,7 +50,7 @@ export class UsersService {
     if (dto.role !== undefined) update.role = dto.role;
 
     if (dto.password !== undefined) {
-      update.passwordHash = fakeHash(dto.password); // <- en Auth lo reemplazamos
+      update.passwordHash = await bcrypt.hash(dto.password, 10);
     }
 
     // si cambia email, validamos duplicados
